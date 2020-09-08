@@ -1,0 +1,395 @@
+---
+output:
+  html_document:                    # Classe de documento.
+    toc: true                       # Exibir sum?rio.
+    toc_depth: 2                    # Profundidade do sum?rio.
+    toc_float:                      # Sum?rio flutuante na borda.
+      collapsed: true
+      smooth_scroll: true
+    number_sections: false           # Se??es numeradas.
+    theme: cerulean
+    #spacelab
+    #default,cerulean,journal,flatly,readable,spacelab,
+    #united,cosmo,lumen,paper,sandstone,simplex,yeti
+    
+    highlight: espresso
+    #default, tango, pygments, kate, monochrome, espresso, zenburn, haddock, and textmate
+    #css: styles.css                 # Caminho para arquivo CSS.
+    fig_width: 7                    # Lagura das figuras.
+    fig_height: 6                   # Altura das figuras.
+    fig_caption: true               # Exibica??o de legenda.
+    fig_align: 'center'
+#    code_folding: hide              # Esconder/exibir bloco de c?digo.
+#    keep_md: true                   # Manter o arquivo md.
+    #template: quarterly_report.html # Caminho para o template.  
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = FALSE)
+```
+
+---
+
+<center>
+<table><tr>
+<td> <img src="img/ufpr.jpg" alt="Drawing" style="width: 200px;"/> </td>
+</tr></table>
+</center>
+
+
+---
+
+<center>
+<font size="3"> 
+<p align=”center”> <b> Departamento de Informática  </b> </center>
+</font>
+</center>
+
+<center>
+<font size="3"> 
+<p align=”center”> <b> Lineu Alberto Cavazani de Freitas  </b> </center>
+</font>
+</center>
+
+<center>
+<font size="3"> 
+<p align=”center”> <b> Prof. Marco Antonio Zanata Alves  </b> </center>
+</font>
+</center>
+
+---
+
+<center>
+<font size="4"> 
+<p align=”center”> <b> INFO7044 - Sistemas de Processamento Paralelo 2020</b> </center>
+</font>
+</center>
+
+<center>
+<font size="3"> 
+<p align=”center”> <b> Trabalho Prático OpenMP  </b> </center>
+</font>
+</center>
+
+---
+
+<font size="5"> 
+<p align=”center”> <b> Descrição </b> </center>
+</font>
+
+---
+
+# O trabalho
+
+Este relatório tem como objetivo sumarizar os resultados dos experimentos do Trabalho Prático de OpenMP aplicado aos alunos da disciplina Sistemas de Processamento Paralelo a nível de mestrado e doutorado no Período Especial de 2020.
+
+Foram fornecidas implementações sequenciais em linguagem C de 3 algoritmos. O objetivo do trabalho era propor versões paralelas destas implementações fazendo uso de construções OpenMP.
+
+Além de propor versões paralelas o trabalho teve como objetivo explorar os resultados observados com base em comparações dos tempos de execução do código puramente sequencial versus as versões com trechos paralelos através de medidas como overhead, speedup e eficiência variando o número de threads e também o tamanho da entrada a fim de observar a escalabilidade das versões propostas.
+
+Os algoritmos fornecidos foram: K-means, Color Histogram e Eternity II. A descrição original do trabalho e os arquivos .C com os códigos seriais fornecidos pelo professor estão disponíveis AQUI, bem como as versões paralelas propostas.
+
+---
+
+# Especificações
+
+O computador utilizado para realização do trabalho possui arquitetura x86_64 com 2 núcleos físicos que suportam 2 núcleos virtuais cada, totalizando 4 núcleos. O ID do fornecedor é GenuineIntel, a família da CPU 6, modelo 61, nome Intel(R) Core(TM) i3-5005U CPU @ 2.00GHz. 
+
+O sistema operacional da máquina é um Linux Ubuntu Release 18.04. Já o compilador utilizado foi o gcc na versão 7.5.0. As saídas dos comandos `lscpu`, `gcc --version` e `lsb_release -a` estão disponíveis AQUI.
+
+---
+
+<font size="5"> 
+<p align=”center”> <b> Resultados </b> </center>
+</font>
+
+---
+
+# K-means
+
+Trata-se de um método de agrupamento, isto é, análise de cluster. O método agrupa os dados (n pontos) em k  clusters, em que cada cluster é definido por um ponto central. Decide-se o número de centroides e, em geral, faz-se uso da distância euclidiana para mensurar a proximidade e o ponto é classificado de acordo com sua proximidade aos centroides do espaço.
+
+Para realização do trabalho, além do código sequencial, foram fornecidas 3 entradas de tamanhos distintos que foram utilizadas para realização dos experimentos. Para cada uma das entradas foram verificados os tempos de execução em 20 repetições para o código sequencial e com diferentes números de threads (1,2,4 e 8). 
+
+Portanto para cada uma das 3 entradas (10x1M.txt, 10x2M.txt, 10x5M.txt) foram feitas: 
+
+ - 20x código sequencial.
+ - 20x código paralelo com 1 thread.
+ - 20x código paralelo com 2 threads.
+ - 20x código paralelo com 4 threads.
+ - 20x código paralelo com 8 threads.
+ 
+Totalizando 100 repetições para cada uma das 3 entradas.
+
+---
+
+## Kernel do código sequencial
+
+Fazendo uso de funções da biblioteca `time.h` foi possível identificar que o while descrito a seguir era o trecho de código que determinava o tempo do programa:
+
+```{Rcpp, eval = F}
+	while (flips>0) {
+
+		flips = 0;
+
+		for (j = 0; j < k; j++) {
+			count[j] = 0;
+			for (i = 0; i < DIM; i++)
+				sum[j*DIM+i] = 0.0;
+		}
+
+		for (i = 0; i < n; i++) {
+			dmin = -1; color = cluster[i];
+			for (c = 0; c < k; c++) {
+				dx = 0.0;
+				for (j = 0; j < DIM; j++)
+					dx +=  (x[i*DIM+j] - mean[c*DIM+j])*(x[i*DIM+j] - mean[c*DIM+j]);
+				if (dx < dmin || dmin == -1) {
+					color = c;
+					dmin = dx;
+				}
+			}
+			if (cluster[i] != color) {
+				flips++;
+				cluster[i] = color;
+	      	}
+		}
+
+```
+
+E, dentro deste laço, o trecho selecionado para ser paralelizado foi o segundo laço responsável pelo cálculo das distâncias necessárias para o k-means. Por se tratarem de 3 laços for aninhados, a estratégia utilizada foi aplicar a construção ` #pragma omp parallel for` antes do primeiro laço e privatizar as variáveis envolvidas nos laços mais internos considerando que não havia dependência no trecho. Portanto, o fragmento acrescentado ao código sequencial foi:
+
+`#pragma omp parallel for default(shared) private(dmin) private(color) private(c) private(dx) private(j)`
+
+Deste modo o trabalho que determinava o tempo da aplicação pôde ser divido entre threads, aumentando o desempenho.
+
+---
+
+## Resultados {.tabset .tabset-fade}
+
+As tabelas abaixo mostram os tempos médios de execução em segundos para cada número testado de threads e para cada uma das entradas. Entenda 0 threads como o tempo de execução do código puramente sequencial e 1 thread como o comportamento do código que suporta multithreading quando setamos 1 thread.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+
+dados <- read.csv2("experimento1.csv", dec = '.')
+
+real <- subset(dados, dados$type == 'real')
+```
+
+### 10x1M 
+
+<center>
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+resultados1 <-
+  subset(real, real$entrada == '10x1M') %>%
+  group_by(threads) %>%
+  summarise(mean(tempo), sd(tempo))
+
+names(resultados1) <- c('Threads', 'Tempo médio', 'Desvio padrão')
+
+pander::pander(resultados1)
+```
+</center>
+
+### 10x2M
+
+<center>
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+resultados2 <-
+  subset(real, real$entrada == '10x2M') %>%
+  group_by(threads) %>%
+  summarise(mean(tempo), sd(tempo))
+
+names(resultados2) <- c('Threads', 'Tempo médio', 'Desvio padrão')
+
+pander::pander(resultados2)
+
+
+```
+</center>
+
+### 10x5M
+
+<center>
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+resultados3 <-
+  subset(real, real$entrada == '10x5M') %>%
+  group_by(threads) %>%
+  summarise(mean(tempo), sd(tempo))
+
+names(resultados3) <- c('Threads', 'Tempo médio', 'Desvio padrão')
+
+pander::pander(resultados3)
+
+```
+</center>
+
+## {-}
+
+Os resultados apresentados sugerem que o código puramente sequencial tem desempenho levemente superior ao código paralelo quando utilizamos apenas uma thread. Em contrapartida é evidente o ganho de desempenho quando aumentamos o número de threads para 2. Para números de threads superiores a 2 é possível verificar que existe um ganho de desempenho, porém bem menos acentuado e quase não havendo diferença entre 4 e 8 threads. Além disso foi possível verificar que houve pouca variabilidade nos tempos obsrevados.  
+
+O gráfico abaixo mostra o número de threads testados no eixo x, o tempo de execução em segundos no eixo y e os pares ordenados representados são as médias observadas. Novamente, entenda 0 threads como o tempo de execução do código puramente sequencial e 1 thread como o comportamento do código que suporta multithreading quando setamos 1 thread.
+
+```{r, echo=FALSE, fig.align='center'}
+graph <- rbind(resultados1, resultados2, resultados3)
+
+graph$Entrada <- c(rep('10x1M', 5), rep('10x2M', 5), rep('10x5M', 5))
+
+ggplot(data = graph,
+       mapping = aes(x = Threads,
+                     y = `Tempo médio`,
+                     col = Entrada))+
+  geom_line(col = 1)+
+  geom_point(size = 3) +
+  facet_wrap(~Entrada, scales = 'free', nrow = 3) +  
+  theme_bw()
+
+
+```
+
+Os resultados apresentados reforçam o que foi apresentado na tabela principalmente no que diz respeito ao considerável ganho de desempenho quando saímos do código sequencial ou com 1 thread para o código com trechos efetivamente paralelos.
+
+---
+
+### Lei de Amdahl {.tabset .tabset-fade}
+
+Através da Lei de Amdahl podemos obter o speedup teórico antes mesmo da realização do experimento. A ideia consiste em analisar o tempo total da aplicação nos trechos que serão mantidos como sequenciais e dividir o tempo do trecho que será paralelizado por valores candidatos a número de processadores.
+
+Por exemplo, considerando a entrada 10x1M, obtivemos um tempo médio de execução sequencial de 28.8 segundos. Fazendo uso da bibioteca `time.h` para obter o tempo de trechos do código foi possível verificar que do tempo total apenas 1 segundo era determinado pela parte em que não havia interesse em paralelizar. Como já mencionado o tempo do código era praticamente todo definido pelo laço while que por sua vez era dominado pelos 3 laços for que lá haviam. 
+
+Considerando o tempo total de execução como algo em torno de 29 segudos dos quais 1 segundo é definido pela parte puramente sequencial podemos verificar então que 96,5% do tempo de execução é passado em procedimentos em que havia interesse em paralelizar, enquanto que 3,5% trata-se da parte não modificada. 
+
+Seguindo o mesmo raciocínio para a entrada 10x2M, os resultados mostraram que o tempo médio da execução sequencial foi de 67.51 segundos dos quais aproximadamente 2 segundos eram definidos pelos trechos que não havia interesse em tornar paralelos. Isto nos diz que aproximadamente 97% do trabalho refere-se a trechos a serem modificados e 3% a trechos mantidos como sequenciais.
+
+Por fim, para a entrada 10x5M, o tempo médio de execução sequencial foi de 673 segundos e aproximadamente 5 segundos eram gastos em trechos mantidos como sequenciais. O que resulta em 99% de tempo gasto no trecho a ser paralelizado e apenas 1% no trecho mantido como sequencial.
+
+Deste modo o speedup teórico seguindo a lei de Amdahl para diferentes números de processadores para cada entrada seria: 
+
+#### 10x1M
+
+<center>
+```{r, echo=FALSE}
+n_parallel <- 0.035
+p <- c(2,4,8,10000)
+
+am <- data.frame(Processadores = p,
+                 Amdahl = 1/(n_parallel + ((1-n_parallel)/p)))
+
+pander::pander(am)
+
+```
+</center>
+
+---
+
+#### 10x2M
+
+<center>
+```{r, echo=FALSE}
+n_parallel <- 0.03
+p <- c(2,4,8,10000)
+
+am <- data.frame(Processadores = p,
+                 Amdahl = 1/(n_parallel + ((1-n_parallel)/p)))
+
+pander::pander(am)
+
+```
+</center>
+
+---
+
+#### 10x5M
+
+<center>
+```{r, echo=FALSE}
+n_parallel <- 0.01
+p <- c(2,4,8,10000)
+
+am <- data.frame(Processadores = p,
+                 Amdahl = 1/(n_parallel + ((1-n_parallel)/p)))
+
+pander::pander(am)
+
+```
+</center>
+
+---
+
+## Métricas de desempenho {.tabset .tabset-fade}
+
+Adicionalmente foram analisadas as métricas: overhead, speedup e eficiência. Os resultados são mostrados nas tabelas a seguir:
+
+### 10x1M 
+
+<center>
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+resultados1.1 <- data.frame(Threads =  resultados1$Threads,
+                            Tempo = resultados1$`Tempo médio`)
+
+resultados1.1$Overhead <- (resultados1.1$Threads*resultados1.1$Tempo) - resultados1.1$Tempo[1]
+
+resultados1.1$Speedup <- resultados1.1$Tempo[1]/resultados1.1$Tempo
+
+resultados1.1$Eficiencia <- resultados1.1$Speedup/resultados1.1$Threads
+
+resultados1.1[1,c(3,4,5)] <- NA
+
+pander::pander(resultados1.1)
+```
+</center>
+
+### 10x2M
+
+<center>
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+resultados2.1 <- data.frame(Threads =  resultados2$Threads,
+                            Tempo = resultados2$`Tempo médio`)
+
+resultados2.1$Overhead <- (resultados2.1$Threads*resultados2.1$Tempo) - resultados2.1$Tempo[1]
+
+resultados2.1$Speedup <- resultados2.1$Tempo[1]/resultados2.1$Tempo
+
+resultados2.1$Eficiencia <- resultados2.1$Speedup/resultados2.1$Threads
+
+resultados2.1[1,c(3,4,5)] <- NA
+
+pander::pander(resultados2.1)
+```
+</center>
+
+### 10x5M
+
+<center>
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+resultados3.1 <- data.frame(Threads =  resultados3$Threads,
+                            Tempo = resultados3$`Tempo médio`)
+
+resultados3.1$Overhead <- (resultados3.1$Threads*resultados3.1$Tempo) - resultados3.1$Tempo[1]
+
+resultados3.1$Speedup <- resultados3.1$Tempo[1]/resultados3.1$Tempo
+
+resultados3.1$Eficiencia <- resultados3.1$Speedup/resultados3.1$Threads
+
+resultados3.1[1,c(3,4,5)] <- NA
+
+pander::pander(resultados3.1)
+```
+</center>
+
+##
+
+Podemos entender o overhead como o custo do algoritmo paralelo menos o custo do algoritmo sequencial, quanto menor esta medida, melhor é o algoritmo. Podemos notar que a medida que aumentamos o número de threads o overhead também aumenta o que mostra que ganhamos pouco desempenho conforme aumentamos o número de threads.
+
+O speedup é a razão entre o tempo original (sequencial) e o tempo com n threads. Valores acima de 1 indicam ganho em relação ao tempo original, valores iguais a 1 indicam ausência de ganho e valores menores que 1 indicam prejuízo. É possível verificar que o único caso em que houve speedup menor que 1 foi quando comparamos o código puramente sequencial com o código que suporta mais de uma thread porém que foi utilizada apenas 1 thread. Portanto os resultados observados de speedup apontam para um ganho de desempenho conforme aumenta-se o número de threads.
+
+A eficiência mede o grau de aproveitamento dos recursos utilizados, isto é, esperamos que a eficiência aumente n vezes sendo n o número de threads. Podemos observar uma queda de eficiência conforme aumentamos o número de threads.
+
+Por fim, dadas estas medidas podemos avaliar a escalabilidade da versão paralela. Não existem evidências suficientes para afirmar que existe escalabilidade forte, pois a medida que aumenta-se o número de processadores há uma queda de eficiência. Contudo existem evidências de escalabilidade fraca, considerando que tanto a eficiência quanto o speedup se mantém muito próximos independente do tamanho da entrada.
+
+---
+
+<div class="tocify-extend-page" data-unique="tocify-extend-page" style="height: 0;"></div>
