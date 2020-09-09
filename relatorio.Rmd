@@ -87,7 +87,7 @@ Foram fornecidas implementações sequenciais em linguagem C de 3 algoritmos. O 
 
 Além de propor versões paralelas o trabalho teve como objetivo explorar os resultados observados com base em comparações dos tempos de execução do código puramente sequencial versus as versões com trechos paralelos através de medidas como overhead, speedup e eficiência variando o número de threads e também o tamanho da entrada a fim de observar a escalabilidade das versões propostas.
 
-Os algoritmos fornecidos foram: K-means, Color Histogram e Eternity II. A descrição original do trabalho e os arquivos .C com os códigos seriais fornecidos pelo professor estão disponíveis AQUI, bem como as versões paralelas propostas.
+Os algoritmos fornecidos foram: K-means, Color Histogram e Eternity II. A descrição original do trabalho e os arquivos .C com os códigos seriais fornecidos pelo professor estão disponíveis [AQUI](https://github.com/lineu96/relatorio_openmp/tree/master/arquivos), bem como as versões paralelas propostas.
 
 ---
 
@@ -95,7 +95,7 @@ Os algoritmos fornecidos foram: K-means, Color Histogram e Eternity II. A descri
 
 O computador utilizado para realização do trabalho possui arquitetura x86_64 com 2 núcleos físicos que suportam 2 núcleos virtuais cada, totalizando 4 núcleos. O ID do fornecedor é GenuineIntel, a família da CPU 6, modelo 61, nome Intel(R) Core(TM) i3-5005U CPU @ 2.00GHz. 
 
-O sistema operacional da máquina é um Linux Ubuntu Release 18.04. Já o compilador utilizado foi o gcc na versão 7.5.0. As saídas dos comandos `lscpu`, `gcc --version` e `lsb_release -a` estão disponíveis AQUI.
+O sistema operacional da máquina é um Linux Ubuntu Release 18.04. Já o compilador utilizado foi o gcc na versão 7.5.0. As saídas dos comandos `lscpu`, `gcc --version` e `lsb_release -a` estão disponíveis [AQUI](https://github.com/lineu96/relatorio_openmp/tree/master/arquivos/01_maquina).
 
 ---
 
@@ -256,7 +256,7 @@ Os resultados apresentados reforçam o que foi apresentado na tabela principalme
 
 ### Lei de Amdahl {.tabset .tabset-fade}
 
-Através da Lei de Amdahl podemos obter o speedup teórico antes mesmo da realização do experimento. A ideia consiste em analisar o tempo total da aplicação nos trechos que serão mantidos como sequenciais e dividir o tempo do trecho que será paralelizado por valores candidatos a número de processadores.
+Através da Lei de Amdahl podemos obter o speedup máximo teórico para qualquer número de threads antes mesmo da realização do experimento. A ideia consiste em analisar o tempo total da aplicação nos trechos que serão mantidos como sequenciais e dividir o tempo do trecho que será paralelizado por valores candidatos a número de processadores.
 
 Por exemplo, considerando a entrada 10x1M, obtivemos um tempo médio de execução sequencial de 28.8 segundos. Fazendo uso da bibioteca `time.h` para obter o tempo de trechos do código foi possível verificar que do tempo total apenas 1 segundo era determinado pela parte em que não havia interesse em paralelizar. Como já mencionado o tempo do código era praticamente todo definido pelo laço while que por sua vez era dominado pelos 3 laços for que lá haviam. 
 
@@ -273,12 +273,12 @@ Deste modo o speedup teórico seguindo a lei de Amdahl para diferentes números 
 <center>
 ```{r, echo=FALSE}
 n_parallel <- 0.035
-p <- c(2,4,8,10000)
+p <- c(2,4,6,8,10,12,10000)
 
-am <- data.frame(Processadores = p,
+am1 <- data.frame(Processadores = p,
                  Amdahl = 1/(n_parallel + ((1-n_parallel)/p)))
 
-pander::pander(am)
+pander::pander(am1)
 
 ```
 </center>
@@ -290,12 +290,12 @@ pander::pander(am)
 <center>
 ```{r, echo=FALSE}
 n_parallel <- 0.03
-p <- c(2,4,8,10000)
+p <- c(2,4,6,8,10,12,10000)
 
-am <- data.frame(Processadores = p,
+am2 <- data.frame(Processadores = p,
                  Amdahl = 1/(n_parallel + ((1-n_parallel)/p)))
 
-pander::pander(am)
+pander::pander(am2)
 
 ```
 </center>
@@ -307,15 +307,42 @@ pander::pander(am)
 <center>
 ```{r, echo=FALSE}
 n_parallel <- 0.01
-p <- c(2,4,8,10000)
+p <- c(2,4,6,8,10,12,10000)
 
-am <- data.frame(Processadores = p,
+am3 <- data.frame(Processadores = p,
                  Amdahl = 1/(n_parallel + ((1-n_parallel)/p)))
 
-pander::pander(am)
+pander::pander(am3)
 
 ```
 </center>
+
+---
+
+#### Gráfico
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.align='center', fig.width= 5, fig.height= 4}
+
+am <- rbind(am1,am2,am3)
+
+am$Entrada <- c(rep("10x1M",7),
+                rep("10x2M",7),
+                rep("10x5M",7))
+
+ggplot(data = subset(am, am$Processadores < 1000),
+       mapping = aes(x = Processadores,
+                     y = Amdahl,
+                     col = Entrada))+
+  geom_line()+
+  geom_point(size = 3) +  
+  ggtitle('Amdahl Speedup')+
+  theme_bw()
+
+```
+
+## {-}
+
+Os speedups teóricos obtidos pela Lei de Amdahl dão indício de que, teoricamente, o aumento do número de processadores geraria maior desempenho com escalabilidade considerável. 
 
 ---
 
@@ -382,13 +409,372 @@ pander::pander(resultados3.1)
 
 ##
 
+Para auxiliar na interpretação, os mesmos resultados representados de forma gráfica:
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.align='center', fig.width= 8, fig.width= 8}
+
+graph <- rbind(resultados1.1,resultados2.1,resultados3.1)
+graph$Entrada <- c(rep('10x1M', 5), rep('10x2M', 5), rep('10x5M', 5))
+
+
+
+g1  <- ggplot(data = graph,
+       mapping = aes(x = Threads,
+                     y = Overhead,
+                     col = Entrada))+
+  geom_line(col = 1)+
+  geom_point(size = 3) +
+  facet_wrap(~Entrada, scales = 'free', ncol = 3) +  
+  ggtitle('Overhead') +
+  theme_bw()
+
+g2 <- ggplot(data = graph,
+       mapping = aes(x = Threads,
+                     y = Speedup,
+                     col = Entrada))+
+  geom_line(col = 1)+
+  geom_point(size = 3) +
+  facet_wrap(~Entrada, scales = 'free', ncol = 3) +  
+  ggtitle('Speedup')+
+  theme_bw()
+
+g3 <- ggplot(data = graph,
+       mapping = aes(x = Threads,
+                     y = Eficiencia,
+                     col = Entrada))+
+  geom_line(col = 1)+
+  geom_point(size = 3) +
+  ggtitle('Eficiência')+
+  facet_wrap(~Entrada, scales = 'free', ncol = 3) +  
+  theme_bw()
+
+
+ggpubr::ggarrange(g1,g2,g3,
+                  ncol = 1, nrow = 3, 
+                  common.legend = T)
+
+```
+
+
 Podemos entender o overhead como o custo do algoritmo paralelo menos o custo do algoritmo sequencial, quanto menor esta medida, melhor é o algoritmo. Podemos notar que a medida que aumentamos o número de threads o overhead também aumenta o que mostra que ganhamos pouco desempenho conforme aumentamos o número de threads.
 
 O speedup é a razão entre o tempo original (sequencial) e o tempo com n threads. Valores acima de 1 indicam ganho em relação ao tempo original, valores iguais a 1 indicam ausência de ganho e valores menores que 1 indicam prejuízo. É possível verificar que o único caso em que houve speedup menor que 1 foi quando comparamos o código puramente sequencial com o código que suporta mais de uma thread porém que foi utilizada apenas 1 thread. Portanto os resultados observados de speedup apontam para um ganho de desempenho conforme aumenta-se o número de threads.
 
-A eficiência mede o grau de aproveitamento dos recursos utilizados, isto é, esperamos que a eficiência aumente n vezes sendo n o número de threads. Podemos observar uma queda de eficiência conforme aumentamos o número de threads.
+A eficiência é a razão entre o speedup e o número de processadores. Com esta medida somos capazes de avaliar o grau de aproveitamento dos recursos utilizados. Na prática, esperamos que a eficiência fique sempre próxima de 1 independente do número de threads, por exemplo: se usamos duas threads esperamos um tempo 2x melhor que o original, se isso se concretiza o valor da razão é 1, isto é, o melhor caso possível. Através dos resultados apresentados podemos observar uma queda de eficiência conforme aumentamos o número de threads.
 
-Por fim, dadas estas medidas podemos avaliar a escalabilidade da versão paralela. Não existem evidências suficientes para afirmar que existe escalabilidade forte, pois a medida que aumenta-se o número de processadores há uma queda de eficiência. Contudo existem evidências de escalabilidade fraca, considerando que tanto a eficiência quanto o speedup se mantém muito próximos independente do tamanho da entrada.
+Por fim, dadas estas medidas podemos avaliar a escalabilidade da versão paralela. Não existem evidências suficientes para afirmar que existe escalabilidade forte, pois a medida que aumenta-se o número de processadores há uma queda de eficiência. Contudo existem evidências de escalabilidade fraca, considerando que tanto a eficiência quanto o speedup se mantém muito próximos independente do tamanho da entrada. 
+
+---
+
+# Color Histogram
+
+No contexto de processamento de imagens um histograma é uma representação gráfica do número de pixels de uma imagem em que no eixo x são representados a escala de tons e no eixo y o número de pixels da imagem que apresentam aquele tom. Portanto, um histograma de cores de uma imagem representa a distribuição das cores da figura em que é exibido o número de pixels em cada um dos intervalos de cores.
+
+Para realização do trabalho, além do código sequencial, foram fornecidas 9 entradas de resoluções diferentes que foram utilizadas para realização dos experimentos: 4k-a.ppm, 4k-b.ppm, 4k-c.ppm, 8k-a.ppm, 8k-b.ppm, 8k-c.ppm, 16k-a.ppm, 16k-b.ppm, 16k-c.ppm
+
+---
+
+## Kernel do código sequencial
+
+Fazendo uso de funções da biblioteca `time.h` foi possível identificar que a função `Histogram` chamada dentro da função principal era responsável por parte considerável do tempo de execução da aplicação: 
+
+```{Rcpp, eval = F}
+void Histogram(PPMImage *image, float *h) {
+
+	int i, j,  k, l, x, count;
+	int rows, cols;
+
+	float n = image->y * image->x;
+
+	cols = image->x;
+	rows = image->y;
+
+	for (i = 0; i < n; i++) {
+		image->data[i].red = floor((image->data[i].red * 4) / 256);
+		image->data[i].blue = floor((image->data[i].blue * 4) / 256);
+		image->data[i].green = floor((image->data[i].green * 4) / 256);
+	}
+
+
+	count = 0;
+	x = 0;
+	for (j = 0; j <= 3; j++) {
+		for (k = 0; k <= 3; k++) {
+			for (l = 0; l <= 3; l++) {
+				for (i = 0; i < n; i++) {
+					if (image->data[i].red == j && image->data[i].green == k && image->data[i].blue == l) {
+						count++;
+					}
+				}
+				h[x] = count / n;
+				count = 0;
+				x++;
+			}
+		}
+	}
+}
+
+```
+
+Dentro desta função, o maior candidato a paralelização e o laço que se encontra após a inicialização das variáveis count e x. O laço é responsável pela obtenção dos 64 valores finais printados ao fim da execução do programa com a média de pixels.
+
+
+---
+
+## Resultados {.tabset .tabset-fade}
+
+Os resultados abaixo mostram os tempos médios de execução em segundos do código puramente sequencial para cada uma das entradas.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+
+dados <- read.csv2("experimento2.csv", dec = '.')
+
+real <- subset(dados, dados$type == 'real')
+```
+
+### Tabela
+
+<center>
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+real$entrada <- ordered(real$entrada, 
+                        levels = c("4k-a", "4k-b", "4k-c",
+                                   "8k-a", "8k-b", "8k-c",
+                                   "16k-a", "16k-b", "16k-c"))
+resultados1 <-
+  real %>%
+  group_by(entrada) %>%
+  summarise(mean(tempo), sd(tempo))
+
+names(resultados1) <- c('Entrada', 'Tempo médio', 'Desvio padrão')
+
+pander::pander(resultados1)
+```
+</center>
+
+### Gráfico
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.align='center', fig.width= 5, fig.height= 4}
+ggplot(data = resultados1,
+       mapping = aes(x = Entrada,
+                     y = `Tempo médio`,
+                     fill = Entrada))+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values = c(rep('#2E2EFE', 3),
+                               rep('#01DF74', 3), 
+                               rep('#FA5858', 3)))+
+  theme_bw() + theme(legend.position = "none")
+```
+
+Os resultados mostram resultados similares de tempos de execução entre diferentes entradas de mesmo tamanho e com variabilidade baixa com exceção da entrada 16k-b que apresentou desvio padrão igual a 1,4.
+
+---
+
+## Lei de Amdahl {.tabset .tabset-fade}
+
+Tal como feito no problema k-means podemos obter o speedup teórico do problema utilizando a Lei de Amdahl que consiste em dividir o tempo do trecho candidato a ser paralelizado entre números candidatos de threads.
+
+Da mesma forma que realizado anteriormente, foi feito uso da bibioteca `time.h` para obter o tempo das partes de interesse do código (parte a ser mantida como sequencial e parte candidata a ser paralela).
+
+A tabela a seguir mostra, para cada uma das entradas o percentual do tempo gasto no trecho candidato a paralelo para as diferentes entradas:
+
+<center>
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+am <- data.frame(entrada = c("4k-a", "4k-b", "4k-c",
+                       "8k-a", "8k-b", "8k-c",
+                       "16k-a", "16k-b", "16k-c"),
+           t_medio = resultados1$`Tempo médio`,
+           t_trecho = c(2,2.5,2.4,
+                        10.05,8.5,12.2,
+                        36.9, 37, 34.8))
+
+am$perc <- paste0(round(am$t_trecho/am$t_medio,2)*100,'%')
+
+names(am) <- c('Entrada', 'Tempo médio', 'Tempo trecho candidato', '%')
+
+pander::pander(am)
+```
+</center>
+
+Os resultados mostram que, com exceção da entrada 4k-a, todas as entradas apresentam um potencial de paralelização de mais de 90% considerando o trecho candidato. Por fim, com estas informações, o speedup máximo teórico seguindo a lei de Amdahl para diferentes números de processadores para cada entrada seria: 
+
+### 4k-a
+
+<center>
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+n_parallel <- 1-0.83
+p <- c(2,4,6,8,10,12,10000)
+
+am1 <- data.frame(Processadores = p,
+                 Amdahl = 1/(n_parallel + ((1-n_parallel)/p)))
+
+pander::pander(am1)
+```
+</center>
+
+---
+
+### 4k-b
+
+<center>
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+n_parallel <- 1-0.92
+p <- c(2,4,6,8,10,12,10000)
+
+am2 <- data.frame(Processadores = p,
+                 Amdahl = 1/(n_parallel + ((1-n_parallel)/p)))
+
+pander::pander(am2)
+```
+</center>
+
+---
+
+### 4k-c
+
+<center>
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+n_parallel <- 1-0.93
+p <- c(2,4,6,8,10,12,10000)
+
+am3 <- data.frame(Processadores = p,
+                 Amdahl = 1/(n_parallel + ((1-n_parallel)/p)))
+
+pander::pander(am3)
+```
+</center>
+
+---
+
+### 8k-a
+
+<center>
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+n_parallel <- 1-0.94
+p <- c(2,4,6,8,10,12,10000)
+
+am4 <- data.frame(Processadores = p,
+                 Amdahl = 1/(n_parallel + ((1-n_parallel)/p)))
+
+pander::pander(am4)
+```
+</center>
+
+---
+
+### 8k-b
+
+<center>
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+n_parallel <- 1-0.9
+p <- c(2,4,6,8,10,12,10000)
+
+am5 <- data.frame(Processadores = p,
+                 Amdahl = 1/(n_parallel + ((1-n_parallel)/p)))
+
+pander::pander(am5)
+```
+</center>
+
+---
+
+### 8k-c
+
+<center>
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+n_parallel <- 1-0.95
+p <- c(2,4,6,8,10,12,10000)
+
+am6 <- data.frame(Processadores = p,
+                 Amdahl = 1/(n_parallel + ((1-n_parallel)/p)))
+
+pander::pander(am6)
+```
+</center>
+
+---
+
+### 16k-a
+
+<center>
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+n_parallel <- 1-0.94
+p <- c(2,4,6,8,10,12,10000)
+
+am7 <- data.frame(Processadores = p,
+                 Amdahl = 1/(n_parallel + ((1-n_parallel)/p)))
+
+pander::pander(am7)
+```
+</center>
+
+---
+
+### 16k-b
+
+<center>
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+n_parallel <- 1-0.93
+p <- c(2,4,6,8,10,12,10000)
+
+am8 <- data.frame(Processadores = p,
+                 Amdahl = 1/(n_parallel + ((1-n_parallel)/p)))
+
+pander::pander(am8)
+```
+</center>
+
+---
+
+### 16k-c
+
+<center>
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+n_parallel <- 1-0.92
+p <- c(2,4,6,8,10,12,10000)
+
+am9 <- data.frame(Processadores = p,
+                 Amdahl = 1/(n_parallel + ((1-n_parallel)/p)))
+
+pander::pander(am9)
+```
+</center>
+
+---
+
+### Gráfico
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.align='center', fig.width= 5, fig.height= 4}
+am <- rbind(am1,am2,am3,
+            am4,am5,am6,
+            am7,am8,am9)
+
+am$Entrada <- c(rep("4k-a",7),
+                rep("4k-b",7),
+                rep("4k-c",7),
+                rep("8k-a",7),
+                rep("8k-b",7),
+                rep("8k-c",7),
+                rep("16k-a",7),
+                rep("16k-b",7),
+                rep("16k-c",7))
+
+
+
+ggplot(data = subset(am, am$Processadores < 1000),
+       mapping = aes(x = Processadores,
+                     y = Amdahl,
+                     col = Entrada))+
+  geom_line()+
+  geom_point(size = 3) +  
+  ggtitle('Amdahl Speedup')+
+  theme_bw()
+
+```
+
+
+## {-}
+
+Os speedups teóricos obtidos pela Lei de Amdahl dão indício de que o aumento do número de processadores geraria maior desempenho. Contudo, vale notar que a diferença entre o speedup teórico e número de threads testados mostra que este aumento não é linear e tem eficiência limitada conforme aumentam-se os processadores, ou seja, a Lei de Amhdal nos dá indício de que o algoritmo com trechos paralelos seria fracamente escalável. 
 
 ---
 
