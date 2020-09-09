@@ -516,8 +516,7 @@ void Histogram(PPMImage *image, float *h) {
 
 ```
 
-Dentro desta função, o maior candidato a paralelização e o laço que se encontra após a inicialização das variáveis count e x. O laço é responsável pela obtenção dos 64 valores finais printados ao fim da execução do programa com a média de pixels.
-
+Dentro desta função, o maior candidato a paralelização é o laço que se encontra após a inicialização das variáveis count e x que é responsável pela obtenção dos 64 valores finais printados ao fim da execução do programa com a média de pixels.
 
 ---
 
@@ -573,9 +572,7 @@ Os resultados mostram resultados similares de tempos de execução entre diferen
 
 Tal como feito no problema k-means podemos obter o speedup teórico do problema utilizando a Lei de Amdahl que consiste em dividir o tempo do trecho candidato a ser paralelizado entre números candidatos de threads.
 
-Da mesma forma que realizado anteriormente, foi feito uso da bibioteca `time.h` para obter o tempo das partes de interesse do código (parte a ser mantida como sequencial e parte candidata a ser paralela).
-
-A tabela a seguir mostra, para cada uma das entradas o percentual do tempo gasto no trecho candidato a paralelo para as diferentes entradas:
+Da mesma forma que realizado anteriormente, foi feito uso da bibioteca `time.h` para obter o tempo das partes de interesse do código:parte a ser mantida como sequencial e parte candidata a ser paralela. A tabela a seguir mostra, para cada uma das entradas, o percentual do tempo gasto no trecho candidato a paralelo:
 
 <center>
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}

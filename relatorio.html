@@ -2234,7 +2234,7 @@ div.tocify {
 <a class="sourceLine" id="cb2-32" data-line-number="32">        }</a>
 <a class="sourceLine" id="cb2-33" data-line-number="33">    }</a>
 <a class="sourceLine" id="cb2-34" data-line-number="34">}</a></code></pre></div>
-<p>Dentro desta função, o maior candidato a paralelização e o laço que se encontra após a inicialização das variáveis count e x. O laço é responsável pela obtenção dos 64 valores finais printados ao fim da execução do programa com a média de pixels.</p>
+<p>Dentro desta função, o maior candidato a paralelização é o laço que se encontra após a inicialização das variáveis count e x que é responsável pela obtenção dos 64 valores finais printados ao fim da execução do programa com a média de pixels.</p>
 <hr />
 </div>
 <div id="resultados-1" class="section level2 tabset tabset-fade">
@@ -2316,8 +2316,7 @@ div.tocify {
 <div id="lei-de-amdahl-1" class="section level2 tabset tabset-fade">
 <h2>Lei de Amdahl</h2>
 <p>Tal como feito no problema k-means podemos obter o speedup teórico do problema utilizando a Lei de Amdahl que consiste em dividir o tempo do trecho candidato a ser paralelizado entre números candidatos de threads.</p>
-<p>Da mesma forma que realizado anteriormente, foi feito uso da bibioteca <code>time.h</code> para obter o tempo das partes de interesse do código (parte a ser mantida como sequencial e parte candidata a ser paralela).</p>
-<p>A tabela a seguir mostra, para cada uma das entradas o percentual do tempo gasto no trecho candidato a paralelo para as diferentes entradas:</p>
+<p>Da mesma forma que realizado anteriormente, foi feito uso da bibioteca <code>time.h</code> para obter o tempo das partes de interesse do código:parte a ser mantida como sequencial e parte candidata a ser paralela. A tabela a seguir mostra, para cada uma das entradas, o percentual do tempo gasto no trecho candidato a paralelo:</p>
 <center>
 <table style="width:76%;">
 <colgroup>
